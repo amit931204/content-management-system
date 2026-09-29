@@ -7,7 +7,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "user-management": {
+    "content-management-system": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -60,10 +60,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "user-management:build:production"
+              "buildTarget": "content-management-system:build:production"
             },
             "development": {
-              "buildTarget": "user-management:build:development"
+              "buildTarget": "content-management-system:build:development"
             }
           },
           "defaultConfiguration": "development"
