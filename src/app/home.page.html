@@ -1,0 +1,15 @@
+<main class="home-shell">
+  <a class="wordmark" routerLink="/home" aria-label="Content Desk home">
+    <span class="wordmark-mark" aria-hidden="true">C</span>
+    <span>content desk</span>
+  </a>
+
+  <section class="welcome" aria-labelledby="welcome-title">
+    <p class="eyebrow">Your workspace</p>
+    <h1 id="welcome-title">You’re in, {{ firstName }}.</h1>
+    <p>Your account is ready. We’ll shape this space around your workflow next.</p>
+    <button type="button" (click)="signOut()">Sign out <span aria-hidden="true">↗</span></button>
+  </section>
+
+  <p class="home-footnote">A good place to begin.</p>
+</main>

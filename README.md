@@ -8,6 +8,8 @@ Firebase is initialized in `src/app/firebase.ts`. The module exports the app, Fi
 
 Before using registration and login, enable **Authentication > Sign-in method > Email/Password** in the Firebase Console and create a **Cloud Firestore** database for the `user-management-amit` project. Set Firestore Security Rules before storing user data; do not deploy open test rules.
 
+The app opens at `/login`; `/signup` creates an account and sends the signed-in user to `/home`. Firebase Authentication enforces email uniqueness. User profiles are stored in `users/{uid}`; a case-insensitive `usernames/{username}` document reserves each username and maps it to its sign-in email. The current client login flow looks up a username before authentication, so a Firestore rule that allows unauthenticated reads can expose those email fields. Do not enable broad public reads in production; move username resolution to a trusted, rate-limited backend before handling real user data.
+
 ## Development server
 
 To start a local development server, run:
