@@ -14,10 +14,18 @@ export const requireRole: CanActivateFn = async (route): Promise<boolean | UrlTr
     return router.createUrlTree(['/login']);
   }
 
-  const profile = await getDoc(doc(firestore, 'users', auth.currentUser.uid));
-  const storedRole = profile.data()?.['role'];
-  const role: UserRole =
-    storedRole === 'admin' || storedRole === 'super_admin' ? storedRole : 'user';
+  // Check cryptographically signed token claims first (avoids unnecessary DB read & latency)
+  const tokenResult = await auth.currentUser.getIdTokenResult();
+  const tokenRole = tokenResult.claims['role'] as string | undefined;
+
+  let role: UserRole = 'user';
+  if (tokenRole === 'admin' || tokenRole === 'super_admin') {
+    role = tokenRole;
+  } else {
+    const profile = await getDoc(doc(firestore, 'users', auth.currentUser.uid));
+    const storedRole = profile.data()?.['role'];
+    role = storedRole === 'admin' || storedRole === 'super_admin' ? storedRole : 'user';
+  }
   const allowedRoles = route.data['allowedRoles'] as UserRole[];
 
   if (allowedRoles.includes(role)) {

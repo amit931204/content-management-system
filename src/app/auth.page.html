@@ -117,13 +117,12 @@
 
         <form [formGroup]="loginForm" (ngSubmit)="submitLogin()" (input)="clearFeedback()" novalidate>
           <div class="field">
-            <label for="loginUsername">Username</label>
-              <input id="loginUsername" type="text" formControlName="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Your username" [attr.aria-invalid]="loginForm.controls.username.invalid && loginForm.controls.username.touched" />
+            <label for="loginUsername">Username or email</label>
+              <input id="loginUsername" type="text" formControlName="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Your username or email" [attr.aria-invalid]="loginForm.controls.username.invalid && loginForm.controls.username.touched" />
             @if (loginForm.controls.username.touched && loginForm.controls.username.errors) {
               <span class="field-error">
-                @if (loginForm.controls.username.hasError('required')) { Enter your username. }
-                @else if (loginForm.controls.username.hasError('minlength')) { Username must be at least 5 characters. }
-                @else { Use only letters, numbers, and underscores. }
+                @if (loginForm.controls.username.hasError('required')) { Enter your username or email. }
+                @else { Enter a valid username or email address. }
               </span>
             }
           </div>

@@ -103,10 +103,6 @@ export class ContentService {
       }
     }
 
-    if (emailChanged) {
-      await updateEmail(currentUser, email);
-    }
-
     try {
       await runTransaction(firestore, async (transaction) => {
         const [userSnapshot, oldUsernameSnapshot, newUsernameSnapshot] = await Promise.all([
@@ -145,14 +141,29 @@ export class ContentService {
           updatedAt: serverTimestamp()
         });
       });
-    } catch (error) {
+
       if (emailChanged) {
         try {
-          await updateEmail(currentUser, oldEmail);
-        } catch {
-          throw new Error('Email changed, but the profile could not sync. Contact support.');
+          await updateEmail(currentUser, email);
+        } catch (authError) {
+          // If Auth update fails (e.g., auth/requires-recent-login), rollback Firestore to prevent permanent desynchronization
+          await runTransaction(firestore, async (rollbackTx) => {
+            const rollbackData = { uid: currentUser.uid, email: oldEmail.toLowerCase() };
+            if (usernameChanged) {
+              rollbackTx.delete(newUsernameRef);
+            }
+            rollbackTx.set(oldUsernameRef, rollbackData);
+            rollbackTx.update(userRef, {
+              ...currentData,
+              updatedAt: serverTimestamp()
+            });
+          }).catch(() => {
+            // Rollback best effort
+          });
+          throw authError;
         }
       }
+    } catch (error) {
       throw error;
     }
 

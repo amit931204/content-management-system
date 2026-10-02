@@ -79,20 +79,34 @@ export class AuthService {
     }
   }
 
-  async signIn(username: string, password: string): Promise<UserRole> {
-    const usernameRef = doc(firestore, 'usernames', username.trim().toLowerCase());
-    const usernameSnapshot = await getDoc(usernameRef);
-    const email = usernameSnapshot.data()?.['email'];
+  async signIn(usernameOrEmail: string, password: string): Promise<UserRole> {
+    const trimmedInput = usernameOrEmail.trim();
+    let email = trimmedInput.toLowerCase();
 
-    if (!usernameSnapshot.exists()) {
-      throw new AuthFlowError('username-not-found');
-    }
-    if (typeof email !== 'string') {
-      throw new AuthFlowError('account-unavailable');
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedInput);
+    if (!isEmail) {
+      const usernameRef = doc(firestore, 'usernames', trimmedInput.toLowerCase());
+      const usernameSnapshot = await getDoc(usernameRef);
+      if (!usernameSnapshot.exists()) {
+        throw new AuthFlowError('username-not-found');
+      }
+      const mappedEmail = usernameSnapshot.data()?.['email'];
+      if (typeof mappedEmail !== 'string') {
+        throw new AuthFlowError('account-unavailable');
+      }
+      email = mappedEmail;
     }
 
     try {
       const credential = await signInWithEmailAndPassword(auth, email, password);
+
+      // Check custom claims first (zero latency)
+      const tokenResult = await credential.user.getIdTokenResult();
+      const tokenRole = tokenResult.claims['role'] as string | undefined;
+      if (tokenRole === 'admin' || tokenRole === 'super_admin') {
+        return tokenRole;
+      }
+
       const userProfile = await getDoc(doc(firestore, 'users', credential.user.uid));
       const role = userProfile.data()?.['role'];
       return role === 'admin' || role === 'super_admin' ? role : 'user';
@@ -110,13 +124,22 @@ export class AuthService {
     }
   }
 
-  async sendPasswordReset(username: string): Promise<void> {
-    const usernameRef = doc(firestore, 'usernames', username.trim().toLowerCase());
-    const usernameSnapshot = await getDoc(usernameRef);
-    const email = usernameSnapshot.data()?.['email'];
+  async sendPasswordReset(usernameOrEmail: string): Promise<void> {
+    const trimmedInput = usernameOrEmail.trim();
+    let email = trimmedInput.toLowerCase();
 
-    if (!usernameSnapshot.exists() || typeof email !== 'string') {
-      return;
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedInput);
+    if (!isEmail) {
+      const usernameRef = doc(firestore, 'usernames', trimmedInput.toLowerCase());
+      const usernameSnapshot = await getDoc(usernameRef);
+      if (!usernameSnapshot.exists()) {
+        return;
+      }
+      const mappedEmail = usernameSnapshot.data()?.['email'];
+      if (typeof mappedEmail !== 'string') {
+        return;
+      }
+      email = mappedEmail;
     }
 
     try {

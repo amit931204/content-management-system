@@ -15,8 +15,10 @@ service cloud.firestore {
 
     function hasRole(roleName) {
       return signedIn()
-        && exists(userPath(request.auth.uid))
-        && get(userPath(request.auth.uid)).data.role == roleName;
+        && (
+          (request.auth.token.role == roleName)
+          || (exists(userPath(request.auth.uid)) && get(userPath(request.auth.uid)).data.role == roleName)
+        );
     }
 
     function isAdmin() {
@@ -25,6 +27,21 @@ service cloud.firestore {
 
     function isSuperAdmin() {
       return hasRole('super_admin');
+    }
+
+    function isValidAuthorName(authorName) {
+      return authorName is string
+        && authorName.size() > 0
+        && authorName.size() <= 100
+        && (
+          authorName == 'Content Desk user'
+          || (request.auth.token.name != null && authorName == request.auth.token.name)
+          || (exists(userPath(request.auth.uid))
+              && (
+                authorName == (get(userPath(request.auth.uid)).data.firstName + ' ' + get(userPath(request.auth.uid)).data.lastName)
+                || authorName == get(userPath(request.auth.uid)).data.username
+              ))
+        );
     }
 
     function postPath(postId) {
@@ -71,8 +88,7 @@ service cloud.firestore {
         || isSuperAdmin()
         || (isAdmin() && resource.data.role == 'user')
       );
-      allow list: if isSuperAdmin()
-        || (isAdmin() && resource.data.role == 'user');
+      allow list: if isSuperAdmin() || isAdmin();
       allow create: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.role == 'user'
@@ -100,6 +116,9 @@ service cloud.firestore {
       allow create, update: if signedIn()
         && request.resource.data.keys().hasOnly(['uid', 'email'])
         && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 5
+        && request.resource.data.email.size() <= 254
         && getAfter(userPath(request.auth.uid)).data.role == 'user'
         && getAfter(userPath(request.auth.uid)).data.username == username
         && getAfter(userPath(request.auth.uid)).data.email == request.resource.data.email;
@@ -124,6 +143,7 @@ service cloud.firestore {
         && request.resource.data.details is string
         && request.resource.data.details.size() > 0
         && request.resource.data.details.size() <= 20000
+        && isValidAuthorName(request.resource.data.authorName)
         && request.resource.data.keys().hasOnly([
           'title', 'details', 'userId', 'authorName', 'approvalId', 'createdAt',
           'likesCount', 'commentsCount', 'lastCommentId'
@@ -167,6 +187,7 @@ service cloud.firestore {
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 2000
+          && isValidAuthorName(request.resource.data.authorName)
           && request.resource.data.keys().hasOnly([
             'userId', 'authorName', 'text', 'createdAt'
           ])

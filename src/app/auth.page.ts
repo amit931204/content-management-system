@@ -19,6 +19,8 @@ const minimumTrimmedLength = (requiredLength: number): ValidatorFn =>
     return actualLength >= requiredLength ? null : { minlength: { requiredLength, actualLength } };
   };
 
+const USERNAME_OR_EMAIL_PATTERN = /^([A-Za-z0-9_]{3,30}|[^\s@]+@[^\s@]+\.[^\s@]+)$/;
+
 @Component({
   selector: 'app-auth-page',
   imports: [ReactiveFormsModule, RouterLink],
@@ -39,7 +41,7 @@ export class AuthPage {
   readonly successMessage = signal('');
 
   readonly loginForm = this.formBuilder.nonNullable.group({
-    username: ['', [Validators.required, Validators.minLength(5), Validators.pattern(USERNAME_PATTERN)]],
+    username: ['', [Validators.required, Validators.pattern(USERNAME_OR_EMAIL_PATTERN)]],
     password: ['', Validators.required]
   });
 
