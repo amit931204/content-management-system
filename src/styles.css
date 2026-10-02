@@ -12,31 +12,7 @@
 }
 
 * {
+
 	box-sizing: border-box;
-}
 
-html,
-body {
-	min-width: 320px;
-	min-height: 100%;
-	margin: 0;
-}
-
-body {
-	min-height: 100svh;
-}
-
-button,
-input {
-	font: inherit;
-}
-
-button,
-a {
-	-webkit-tap-highlight-color: transparent;
-}
-
-::selection {
-	color: #fffdf8;
-	background: #265b4b;
 }

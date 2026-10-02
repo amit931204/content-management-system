@@ -9,7 +9,7 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FirebaseError } from 'firebase/app';
-import { AuthFlowError, AuthService } from './auth.service';
+import { AuthFlowError, AuthService, UserRole } from './auth.service';
 
 const USERNAME_PATTERN = /^[A-Za-z0-9_]+$/;
 const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])\S+$/;
@@ -33,8 +33,10 @@ export class AuthPage {
 
   readonly isSignup = this.route.snapshot.data['mode'] === 'signup';
   readonly busy = signal(false);
+  readonly resettingPassword = signal(false);
   readonly showPassword = signal(false);
   readonly errorMessage = signal('');
+  readonly successMessage = signal('');
 
   readonly loginForm = this.formBuilder.nonNullable.group({
     username: ['', [Validators.required, Validators.minLength(5), Validators.pattern(USERNAME_PATTERN)]],
@@ -51,6 +53,30 @@ export class AuthPage {
 
   clearFeedback(): void {
     this.errorMessage.set('');
+    this.successMessage.set('');
+  }
+
+  async requestPasswordReset(): Promise<void> {
+    this.clearFeedback();
+    const usernameControl = this.loginForm.controls.username;
+    usernameControl.markAsTouched();
+    if (usernameControl.invalid) {
+      return;
+    }
+
+    this.busy.set(true);
+    this.resettingPassword.set(true);
+    this.loginForm.disable({ emitEvent: false });
+    try {
+      await this.authService.sendPasswordReset(usernameControl.value);
+      this.successMessage.set('If that username is registered, a reset link has been sent to the email on file. Check your inbox and spam folder.');
+    } catch (error) {
+      this.errorMessage.set(this.getErrorMessage(error));
+    } finally {
+      this.loginForm.enable({ emitEvent: false });
+      this.resettingPassword.set(false);
+      this.busy.set(false);
+    }
   }
 
   async submitLogin(): Promise<void> {
@@ -64,8 +90,8 @@ export class AuthPage {
     this.loginForm.disable({ emitEvent: false });
     try {
       const { username, password } = this.loginForm.getRawValue();
-      await this.authService.signIn(username, password);
-      await this.router.navigateByUrl('/home');
+      const role = await this.authService.signIn(username, password);
+      await this.router.navigateByUrl(this.roleHomePath(role));
     } catch (error) {
       this.errorMessage.set(this.getErrorMessage(error));
     } finally {
@@ -94,11 +120,25 @@ export class AuthPage {
     }
   }
 
+  private roleHomePath(role: UserRole): string {
+    if (role === 'super_admin') {
+      return '/super-admin';
+    }
+    return role === 'admin' ? '/admin' : '/home';
+  }
+
   private getErrorMessage(error: unknown): string {
     if (error instanceof AuthFlowError) {
-      return error.reason === 'username-already-in-use'
-        ? 'That username is already taken. Try another one.'
-        : 'The username or password is incorrect. Please try again.';
+      switch (error.reason) {
+        case 'username-already-in-use':
+          return 'That username is already taken. Try another one.';
+        case 'username-not-found':
+          return 'Username not found. Check your username or create an account.';
+        case 'incorrect-password':
+          return 'Password is incorrect. Please try again.';
+        case 'account-unavailable':
+          return 'This account is unavailable. Please contact support.';
+      }
     }
 
     if (error instanceof FirebaseError) {
@@ -119,6 +159,9 @@ export class AuthPage {
       }
       if (error.code === 'auth/network-request-failed' || error.code === 'unavailable') {
         return 'We could not reach the service. Check your connection and try again.';
+      }
+      if (error.code === 'auth/too-many-requests') {
+        return 'Too many requests. Wait a few minutes before trying again.';
       }
       if (error.code === 'permission-denied') {
         return 'We could not check your username. Please try again or contact support.';

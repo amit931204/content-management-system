@@ -1,0 +1,59 @@
+<main class="workspace-page">
+  <app-workspace-nav />
+  <div class="page-content">
+    <a class="text-link back-link" routerLink="/home">← Back to recent posts</a>
+
+    @if (loading()) {
+      <p class="empty-state" role="status">Loading post…</p>
+    } @else if (post(); as entry) {
+      <article>
+        <p class="eyebrow">{{ entry.authorName }} <span aria-hidden="true">·</span> {{ entry.createdAt | date: 'MMM d, y' }}</p>
+        <h1 class="detail-title">{{ entry.title }}</h1>
+        <div class="detail-body">{{ entry.details }}</div>
+        <div class="detail-actions">
+          <button class="secondary-action" type="button" [disabled]="liking()" [attr.aria-pressed]="liked()" (click)="toggleLike()">
+            {{ liked() ? 'Liked' : 'Like' }} · {{ entry.likesCount }}
+          </button>
+          @if (currentUserId === entry.userId) {
+            <a class="secondary-action" [routerLink]="['/posts', entry.id, 'edit']">Edit post</a>
+          }
+          <button class="secondary-action" type="button" (click)="copyLink()">{{ copied() ? 'Link copied' : 'Copy post link' }}</button>
+        </div>
+      </article>
+
+      <section class="comments-section" aria-labelledby="comments-title">
+        <h2 id="comments-title">Comments <span class="comment-count">{{ entry.commentsCount }}</span></h2>
+        <form class="comment-form" [formGroup]="commentForm" (ngSubmit)="addComment()" novalidate>
+          <div class="comment-input">
+            <label class="visually-hidden" for="commentText">Write a comment</label>
+            <textarea id="commentText" formControlName="text" maxlength="2000" rows="3" placeholder="Add to the conversation…" [attr.aria-invalid]="commentForm.controls.text.invalid && commentForm.controls.text.touched"></textarea>
+            @if (commentForm.controls.text.touched && commentForm.controls.text.hasError('required')) {
+              <span class="field-error">Write a comment before posting.</span>
+            }
+          </div>
+          <button class="primary-action" type="submit" [disabled]="commenting()">{{ commenting() ? 'Posting…' : 'Comment' }}</button>
+        </form>
+
+        @if (comments().length) {
+          <div class="comment-list">
+            @for (comment of comments(); track comment.id) {
+              <article class="comment-row">
+                <div class="comment-header">
+                  <strong>{{ comment.authorName }}</strong>
+                  <time [attr.datetime]="comment.createdAt.toISOString()">{{ comment.createdAt | date: 'MMM d, y · h:mm a' }}</time>
+                </div>
+                <p class="comment-text">{{ comment.text }}</p>
+              </article>
+            }
+          </div>
+        } @else {
+          <p class="empty-state">No comments yet. Start the conversation.</p>
+        }
+      </section>
+    } @else {
+      <p class="error-state" role="alert">{{ errorMessage() }}</p>
+    }
+
+    @if (post() && errorMessage()) { <p class="notice error" role="alert">{{ errorMessage() }}</p> }
+  </div>
+</main>

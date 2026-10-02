@@ -5,9 +5,9 @@
   </a>
 
   <section class="welcome" aria-labelledby="welcome-title">
-    <p class="eyebrow">Your workspace</p>
+    <p class="eyebrow">{{ title }}</p>
     <h1 id="welcome-title">You’re in, {{ firstName }}.</h1>
-    <p>Your account is ready. We’ll shape this space around your workflow next.</p>
+    <p>Your account is ready. This {{ title.toLowerCase() }} is ready for its next steps.</p>
     <button type="button" (click)="signOut()">Sign out <span aria-hidden="true">↗</span></button>
   </section>
 

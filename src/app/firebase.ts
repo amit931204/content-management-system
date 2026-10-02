@@ -7,7 +7,6 @@ const firebaseConfig = {
   apiKey: 'AIzaSyA51Poo0szLYWM_aBQDYs58PtTZAt8D1CY',
   authDomain: 'user-management-amit.firebaseapp.com',
   projectId: 'user-management-amit',
-  storageBucket: 'user-management-amit.firebasestorage.app',
   messagingSenderId: '898658034449',
   appId: '1:898658034449:web:0e37967b6d8247bc94e2b0',
   measurementId: 'G-GLR931YWBQ'

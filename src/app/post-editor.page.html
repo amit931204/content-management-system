@@ -1,0 +1,54 @@
+<main class="workspace-page">
+  <app-workspace-nav />
+  <div class="page-content">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">Your writing</p>
+        <h1>{{ isEditing ? 'Edit post' : 'Write a post' }}</h1>
+        <p class="page-subtitle">{{ isEditing ? 'Update the title or details of your post.' : 'Share an idea, a question, or something you have learned.' }}</p>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <p class="empty-state" role="status">Loading post for editing…</p>
+    } @else if (isEditing && !postReady()) {
+      <p class="error-state" role="alert">{{ errorMessage() }}</p>
+    } @else {
+      <form class="form-layout" [formGroup]="postForm" (ngSubmit)="publish()" novalidate>
+        <div class="form-fields">
+          <div class="form-field">
+            <label for="postTitle">Title</label>
+            <input id="postTitle" type="text" formControlName="title" maxlength="140" placeholder="Give your post a clear title" [attr.aria-invalid]="postForm.controls.title.invalid && postForm.controls.title.touched" />
+            @if (postForm.controls.title.touched && postForm.controls.title.hasError('required')) {
+              <span class="field-error">Add a title before publishing.</span>
+            }
+            @if (postForm.controls.title.touched && postForm.controls.title.hasError('maxlength')) {
+              <span class="field-error">Titles can be up to 140 characters.</span>
+            }
+          </div>
+          <div class="form-field">
+            <label for="postDetails">Details</label>
+            <textarea id="postDetails" formControlName="details" maxlength="20000" rows="10" placeholder="Write the details of your post…" [attr.aria-invalid]="postForm.controls.details.invalid && postForm.controls.details.touched"></textarea>
+            <span class="form-help">{{ postForm.controls.details.value.length }} / 20,000 characters</span>
+            @if (postForm.controls.details.touched && postForm.controls.details.hasError('required')) {
+              <span class="field-error">Add some details before publishing.</span>
+            }
+            @if (postForm.controls.details.touched && postForm.controls.details.hasError('maxlength')) {
+              <span class="field-error">Post details can be up to 20,000 characters.</span>
+            }
+          </div>
+        </div>
+
+        @if (errorMessage()) { <p class="notice error" role="alert">{{ errorMessage() }}</p> }
+        <div class="form-actions">
+          <button class="primary-action" type="submit" [disabled]="saving()">{{ saving() ? (isEditing ? 'Saving…' : 'Publishing…') : (isEditing ? 'Save changes' : 'Publish post') }}</button>
+          @if (isEditing && postId) {
+            <a class="secondary-action" [routerLink]="['/posts', postId]">Cancel</a>
+          } @else {
+            <a class="secondary-action" routerLink="/home">Cancel</a>
+          }
+        </div>
+      </form>
+    }
+  </div>
+</main>

@@ -1,0 +1,85 @@
+<main class="workspace-page">
+  <app-workspace-nav />
+  <div class="page-content">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">Account</p>
+        <h1>Your profile</h1>
+        <p class="page-subtitle">Keep your contact details up to date.</p>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <p class="empty-state" role="status">Loading your profile…</p>
+    } @else if (profile(); as user) {
+      <section class="profile-identifiers" aria-label="Account identifiers">
+        <div class="identifier-row">
+          <span>User ID</span>
+          <code>{{ user.uid }}</code>
+        </div>
+        <p class="form-help">Your user ID is a permanent account identifier.</p>
+      </section>
+
+      <form class="profile-form form-layout" [formGroup]="profileForm" (ngSubmit)="saveProfile()" (input)="successMessage.set('')" novalidate>
+        <div class="profile-field-grid">
+          <div class="form-field">
+            <label for="profileUsername">Username</label>
+            <input id="profileUsername" type="text" formControlName="username" autocomplete="username" autocapitalize="none" spellcheck="false" [attr.aria-invalid]="profileForm.controls.username.invalid && profileForm.controls.username.touched" />
+            @if (profileForm.controls.username.touched && profileForm.controls.username.errors) {
+              <span class="field-error">
+                @if (profileForm.controls.username.hasError('required')) { Enter a username. }
+                @else if (profileForm.controls.username.hasError('minlength')) { Username must be at least 5 characters. }
+                @else { Use only letters, numbers, and underscores. }
+              </span>
+            }
+          </div>
+          <div class="form-field">
+            <label for="profileEmail">Email address</label>
+            <input id="profileEmail" type="email" formControlName="email" autocomplete="email" [attr.aria-invalid]="profileForm.controls.email.invalid && profileForm.controls.email.touched" />
+            @if (profileForm.controls.email.touched && profileForm.controls.email.errors) {
+              <span class="field-error">{{ profileForm.controls.email.hasError('required') ? 'Enter your email address.' : 'Enter a valid email address.' }}</span>
+            }
+          </div>
+          <div class="form-field">
+            <label for="profileFirstName">First name</label>
+            <input id="profileFirstName" type="text" formControlName="firstName" autocomplete="given-name" [attr.aria-invalid]="profileForm.controls.firstName.invalid && profileForm.controls.firstName.touched" />
+            @if (profileForm.controls.firstName.touched && profileForm.controls.firstName.errors) {
+              <span class="field-error">{{ profileForm.controls.firstName.hasError('required') ? 'Enter your first name.' : 'First name must be at least 3 characters.' }}</span>
+            }
+          </div>
+          <div class="form-field">
+            <label for="profileLastName">Last name</label>
+            <input id="profileLastName" type="text" formControlName="lastName" autocomplete="family-name" [attr.aria-invalid]="profileForm.controls.lastName.invalid && profileForm.controls.lastName.touched" />
+            @if (profileForm.controls.lastName.touched && profileForm.controls.lastName.errors) {
+              <span class="field-error">{{ profileForm.controls.lastName.hasError('required') ? 'Enter your last name.' : 'Last name must be at least 3 characters.' }}</span>
+            }
+          </div>
+          <div class="form-field">
+            <label for="profileDob">Date of birth</label>
+            <input id="profileDob" type="date" formControlName="dob" [max]="maxDob" />
+          </div>
+          <div class="form-field">
+            <label for="profilePhone">Contact number</label>
+            <input id="profilePhone" type="tel" formControlName="contactNumber" autocomplete="tel" placeholder="+1 555 010 1234" [attr.aria-invalid]="profileForm.controls.contactNumber.invalid && profileForm.controls.contactNumber.touched" />
+            @if (profileForm.controls.contactNumber.touched && profileForm.controls.contactNumber.hasError('pattern')) {
+              <span class="field-error">Enter a valid phone number.</span>
+            }
+          </div>
+          <div class="form-field full-width">
+            <label for="profileAddress">Address</label>
+            <textarea id="profileAddress" formControlName="address" autocomplete="street-address" maxlength="500" rows="3" placeholder="Street, city, region, postal code"></textarea>
+            <span class="form-help">Optional, up to 500 characters.</span>
+          </div>
+        </div>
+
+        @if (errorMessage()) { <p class="notice error" role="alert">{{ errorMessage() }}</p> }
+        @if (successMessage()) { <p class="notice" role="status">{{ successMessage() }}</p> }
+        <div class="form-actions">
+          <button class="primary-action" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save changes' }}</button>
+        </div>
+      </form>
+    } @else if (errorMessage()) {
+      <p class="error-state" role="alert">{{ errorMessage() }}</p>
+    }
+  </div>
+</main>

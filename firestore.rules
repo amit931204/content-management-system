@@ -1,0 +1,180 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function usernamePath(username) {
+      return /databases/$(database)/documents/usernames/$(username);
+    }
+
+    function hasRole(roleName) {
+      return signedIn()
+        && exists(userPath(request.auth.uid))
+        && get(userPath(request.auth.uid)).data.role == roleName;
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function isSuperAdmin() {
+      return hasRole('super_admin');
+    }
+
+    function postPath(postId) {
+      return /databases/$(database)/documents/posts/$(postId);
+    }
+
+    function likePath(postId, userId) {
+      return /databases/$(database)/documents/posts/$(postId)/likes/$(userId);
+    }
+
+    function isValidLikeCounterChange(postId) {
+      let fields = request.resource.data.diff(resource.data).affectedKeys();
+      let userLikePath = likePath(postId, request.auth.uid);
+      return signedIn()
+        && fields.hasOnly(['likesCount'])
+        && (
+          (request.resource.data.likesCount == resource.data.likesCount + 1
+            && !exists(userLikePath)
+            && existsAfter(userLikePath)
+            && getAfter(userLikePath).data.userId == request.auth.uid)
+          ||
+          (request.resource.data.likesCount == resource.data.likesCount - 1
+            && exists(userLikePath)
+            && !existsAfter(userLikePath))
+        );
+    }
+
+    function isValidCommentCounterChange(postId) {
+      let fields = request.resource.data.diff(resource.data).affectedKeys();
+      let commentId = request.resource.data.lastCommentId;
+      let commentPath = /databases/$(database)/documents/posts/$(postId)/comments/$(commentId);
+      return signedIn()
+        && commentId is string
+        && fields.hasOnly(['commentsCount', 'lastCommentId'])
+        && request.resource.data.commentsCount == resource.data.commentsCount + 1
+        && !exists(commentPath)
+        && existsAfter(commentPath)
+        && getAfter(commentPath).data.userId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow get: if signedIn() && (
+        request.auth.uid == userId
+        || isSuperAdmin()
+        || (isAdmin() && resource.data.role == 'user')
+      );
+      allow list: if isSuperAdmin()
+        || (isAdmin() && resource.data.role == 'user');
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == 'user'
+        && request.resource.data.keys().hasOnly([
+          'firstName', 'lastName', 'email', 'username', 'role', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'firstName', 'lastName', 'email', 'username', 'role', 'createdAt'
+        ]);
+      allow update: if isSuperAdmin()
+        || (signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'username', 'email', 'firstName', 'lastName', 'dob', 'contactNumber', 'address', 'updatedAt'
+          ])
+          && getAfter(usernamePath(request.resource.data.username)).data.uid == request.auth.uid
+          && getAfter(usernamePath(request.resource.data.username)).data.email == request.resource.data.email);
+      allow delete: if isSuperAdmin();
+    }
+
+    match /usernames/{username} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'email'])
+        && request.resource.data.uid == request.auth.uid
+        && getAfter(userPath(request.auth.uid)).data.role == 'user'
+        && getAfter(userPath(request.auth.uid)).data.username == username
+        && getAfter(userPath(request.auth.uid)).data.email == request.resource.data.email;
+      allow delete: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && getAfter(userPath(request.auth.uid)).data.role == 'user'
+        && getAfter(userPath(request.auth.uid)).data.username != username;
+    }
+
+    match /posts/{postId} {
+      allow get, list: if signedIn();
+      allow create: if signedIn()
+        && hasRole('user')
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.approvalId == null
+        && request.resource.data.likesCount == 0
+        && request.resource.data.commentsCount == 0
+        && request.resource.data.lastCommentId == null
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 140
+        && request.resource.data.details is string
+        && request.resource.data.details.size() > 0
+        && request.resource.data.details.size() <= 20000
+        && request.resource.data.keys().hasOnly([
+          'title', 'details', 'userId', 'authorName', 'approvalId', 'createdAt',
+          'likesCount', 'commentsCount', 'lastCommentId'
+        ]);
+      allow update: if signedIn() && (
+        (resource.data.userId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'title', 'details', 'updatedAt'
+          ])
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.title.size() <= 140
+          && request.resource.data.details is string
+          && request.resource.data.details.size() > 0
+          && request.resource.data.details.size() <= 20000)
+        || isValidLikeCounterChange(postId)
+        || isValidCommentCounterChange(postId)
+      );
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid;
+
+      match /likes/{userId} {
+        allow get: if signedIn() && request.auth.uid == userId;
+        allow list: if false;
+        allow create: if signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.keys().hasOnly(['userId', 'createdAt'])
+          && getAfter(postPath(postId)).data.likesCount
+            == get(postPath(postId)).data.likesCount + 1;
+        allow delete: if signedIn()
+          && request.auth.uid == userId
+          && getAfter(postPath(postId)).data.likesCount
+            == get(postPath(postId)).data.likesCount - 1;
+        allow update: if false;
+      }
+
+      match /comments/{commentId} {
+        allow get, list: if signedIn();
+        allow create: if signedIn()
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000
+          && request.resource.data.keys().hasOnly([
+            'userId', 'authorName', 'text', 'createdAt'
+          ])
+          && getAfter(postPath(postId)).data.lastCommentId == commentId
+          && getAfter(postPath(postId)).data.commentsCount
+            == get(postPath(postId)).data.commentsCount + 1;
+        allow update, delete: if false;
+      }
+    }
+  }
+}

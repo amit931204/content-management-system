@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import {
   createUserWithEmailAndPassword,
   deleteUser,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   updateProfile
 } from 'firebase/auth';
@@ -16,8 +17,16 @@ export interface SignupDetails {
   password: string;
 }
 
+export type UserRole = 'user' | 'admin' | 'super_admin';
+
 export class AuthFlowError extends Error {
-  constructor(readonly reason: 'username-already-in-use' | 'invalid-credentials') {
+  constructor(
+    readonly reason:
+      | 'username-already-in-use'
+      | 'username-not-found'
+      | 'incorrect-password'
+      | 'account-unavailable'
+  ) {
     super(reason);
   }
 }
@@ -60,6 +69,7 @@ export class AuthService {
           lastName: details.lastName.trim(),
           email: details.email.trim().toLowerCase(),
           username,
+          role: 'user',
           createdAt: serverTimestamp()
         });
       });
@@ -69,27 +79,56 @@ export class AuthService {
     }
   }
 
-  async signIn(username: string, password: string): Promise<void> {
+  async signIn(username: string, password: string): Promise<UserRole> {
+    const usernameRef = doc(firestore, 'usernames', username.trim().toLowerCase());
+    const usernameSnapshot = await getDoc(usernameRef);
+    const email = usernameSnapshot.data()?.['email'];
+
+    if (!usernameSnapshot.exists()) {
+      throw new AuthFlowError('username-not-found');
+    }
+    if (typeof email !== 'string') {
+      throw new AuthFlowError('account-unavailable');
+    }
+
+    try {
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      const userProfile = await getDoc(doc(firestore, 'users', credential.user.uid));
+      const role = userProfile.data()?.['role'];
+      return role === 'admin' || role === 'super_admin' ? role : 'user';
+    } catch (error) {
+      if (typeof error === 'object' && error !== null && 'code' in error) {
+        const code = String(error.code);
+        if (['auth/invalid-credential', 'auth/wrong-password'].includes(code)) {
+          throw new AuthFlowError('incorrect-password');
+        }
+        if (code === 'auth/user-not-found') {
+          throw new AuthFlowError('account-unavailable');
+        }
+      }
+      throw error;
+    }
+  }
+
+  async sendPasswordReset(username: string): Promise<void> {
     const usernameRef = doc(firestore, 'usernames', username.trim().toLowerCase());
     const usernameSnapshot = await getDoc(usernameRef);
     const email = usernameSnapshot.data()?.['email'];
 
     if (!usernameSnapshot.exists() || typeof email !== 'string') {
-      throw new AuthFlowError('invalid-credentials');
+      return;
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await sendPasswordResetEmail(auth, email);
     } catch (error) {
       if (
         typeof error === 'object' &&
         error !== null &&
         'code' in error &&
-        ['auth/invalid-credential', 'auth/user-not-found', 'auth/wrong-password'].includes(
-          String(error.code)
-        )
+        ['auth/user-not-found', 'auth/user-disabled', 'auth/invalid-email'].includes(String(error.code))
       ) {
-        throw new AuthFlowError('invalid-credentials');
+        return;
       }
       throw error;
     }

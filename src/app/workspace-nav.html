@@ -1,0 +1,14 @@
+<header class="workspace-header">
+  <a class="brand" routerLink="/home" aria-label="Content Desk home">
+    <span class="brand-mark" aria-hidden="true">C</span>
+    <span>content desk</span>
+  </a>
+  <nav aria-label="Main navigation">
+    <a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Recent</a>
+    <a routerLink="/posts" routerLinkActive="active">All posts</a>
+    <a routerLink="/my-posts" routerLinkActive="active">My posts</a>
+    <a routerLink="/posts/new" routerLinkActive="active">Write</a>
+    <a routerLink="/profile" routerLinkActive="active">Profile</a>
+  </nav>
+  <button class="sign-out" type="button" (click)="signOut()">Sign out</button>
+</header>

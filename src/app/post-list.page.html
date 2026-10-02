@@ -1,0 +1,77 @@
+<main class="workspace-page">
+  <app-workspace-nav />
+  <div class="page-content">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">
+          @if (mode === 'mine') { Your writing }
+          @else if (mode === 'recent') { From the community }
+          @else { Explore }
+        </p>
+        <h1>
+          @if (mode === 'mine') { My posts }
+          @else if (mode === 'recent') { Recent posts }
+          @else { All posts }
+        </h1>
+        <p class="page-subtitle">
+          @if (mode === 'mine') { Posts you have published. }
+          @else if (mode === 'recent') { The latest writing from across Content Desk. }
+          @else { Search titles and post details. Newest posts appear first. }
+        </p>
+      </div>
+      <div class="heading-actions">
+        @if (mode === 'recent') {
+          <a class="secondary-action" routerLink="/posts">View all posts <span aria-hidden="true">→</span></a>
+        }
+        <a class="primary-action" routerLink="/posts/new">Write a post <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+
+    @if (mode === 'all') {
+      <label class="search-field">
+        <span aria-hidden="true">⌕</span>
+        <input type="search" placeholder="Search titles or post details" aria-label="Search all posts by title or details" (input)="onSearch($event)" />
+      </label>
+    }
+
+    @if (loading()) {
+      <p class="empty-state" role="status">Loading posts…</p>
+    } @else if (errorMessage()) {
+      <p class="error-state" role="alert">{{ errorMessage() }}</p>
+    } @else if (filteredPosts().length) {
+      <div class="post-list" aria-label="Posts">
+        @for (post of filteredPosts(); track post.id) {
+          <article class="post-row">
+            <div>
+              <a class="post-title" [routerLink]="['/posts', post.id]">{{ post.title }}</a>
+              <p class="post-excerpt">{{ post.details }}</p>
+              <div class="post-byline">
+                <span>{{ post.authorName }}</span>
+                <time [attr.datetime]="post.createdAt.toISOString()">{{ post.createdAt | date: 'MMM d, y' }}</time>
+              </div>
+            </div>
+            <div class="post-meta" aria-label="Post engagement">
+              <span>{{ post.likesCount }} likes</span>
+              <span>{{ post.commentsCount }} comments</span>
+            </div>
+          </article>
+        }
+      </div>
+    } @else {
+      @if (searchText()) {
+        <p class="empty-state">No posts match “{{ searchText() }}”. Try another search.</p>
+      } @else {
+        <section class="empty-feed" aria-labelledby="empty-feed-title">
+          <app-empty-posts-animation />
+          <p class="eyebrow">A fresh page</p>
+          <h2 id="empty-feed-title">Every good story starts somewhere.</h2>
+          <p class="empty-feed-copy">
+            @if (mode === 'mine') { Your posts will live here. Share the first one when you’re ready. }
+            @else { There are no posts yet. Start the conversation with your first post. }
+          </p>
+          <a class="primary-action" routerLink="/posts/new">{{ mode === 'mine' ? 'Write your first post' : 'Create the first post' }} <span aria-hidden="true">↗</span></a>
+        </section>
+      }
+    }
+  </div>
+</main>

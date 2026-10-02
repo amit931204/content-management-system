@@ -139,7 +139,11 @@
             }
           </div>
 
+          <div class="forgot-password-row">
+            <button class="forgot-password" type="button" [disabled]="busy()" (click)="requestPasswordReset()">Forgot password?</button>
+          </div>
           @if (errorMessage()) { <p class="notice error-notice" role="alert">{{ errorMessage() }}</p> }
+          @if (successMessage()) { <p class="notice success-notice" role="status">{{ successMessage() }}</p> }
           <button class="submit-button" type="submit" [disabled]="busy()">
             {{ busy() ? 'Signing in…' : 'Sign in' }}
             <span aria-hidden="true">↗</span>
@@ -151,7 +155,7 @@
       @if (busy()) {
         <div class="loading-overlay" role="status" aria-live="polite">
           <span class="loading-spinner" aria-hidden="true"></span>
-          <span>{{ isSignup ? 'Creating your account…' : 'Signing you in…' }}</span>
+          <span>{{ isSignup ? 'Creating your account…' : resettingPassword() ? 'Sending reset link…' : 'Signing you in…' }}</span>
         </div>
       }
     </div>

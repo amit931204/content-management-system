@@ -1,0 +1,112 @@
+:host {
+  display: block;
+  width: min(100%, 300px);
+  margin: 0 auto 12px;
+}
+
+.empty-box-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.box-shadow {
+  fill: #d9d9cd;
+}
+
+.box-left,
+.box-right,
+.flap-left,
+.flap-right,
+.flap-center {
+  stroke: #30201d;
+  stroke-linejoin: round;
+  stroke-width: 5px;
+}
+
+.box-left {
+  fill: #f79208;
+}
+
+.box-right {
+  fill: #ec8100;
+}
+
+.box-seam {
+  fill: none;
+  stroke: #30201d;
+  stroke-linecap: round;
+  stroke-width: 5px;
+}
+
+.flap-left,
+.flap-right {
+  fill: #ffa414;
+}
+
+.flap-left-fold,
+.flap-right-fold {
+  fill: #f47d00;
+  stroke: #30201d;
+  stroke-linejoin: round;
+  stroke-width: 4px;
+}
+
+.flap-center {
+  fill: #ffb32d;
+}
+
+.box-speckles {
+  fill: #d96d00;
+  opacity: 0.56;
+}
+
+.pin-shadow {
+  fill: #30201d;
+  transform: translateY(4px);
+}
+
+.pin-face {
+  fill: #f3445f;
+  stroke: #30201d;
+  stroke-width: 5px;
+}
+
+.pin-cross {
+  fill: none;
+  stroke: #30201d;
+  stroke-linecap: round;
+  stroke-width: 7px;
+}
+
+.sparkles {
+  fill: #30201d;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sparkle-pop 1.8s ease-in-out infinite alternate;
+}
+
+.alert-pin {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: pin-bob 2.4s ease-in-out infinite;
+}
+
+@keyframes pin-bob {
+  0%,
+  100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-4px) rotate(2deg); }
+}
+
+@keyframes sparkle-pop {
+  from { opacity: 0.45; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alert-pin,
+  .sparkles {
+    animation: none;
+  }
+}

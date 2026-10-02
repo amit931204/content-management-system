@@ -322,6 +322,7 @@ form {
 }
 
 .password-toggle:focus-visible,
+.forgot-password:focus-visible,
 .switch-prompt a:focus-visible,
 .wordmark:focus-visible {
   outline: 2px solid #39745e;
@@ -354,6 +355,34 @@ form {
   border-left: 3px solid #ae4b41;
   color: #813d35;
   background: #fbefed;
+}
+
+.forgot-password-row {
+  display: flex;
+  justify-content: end;
+  margin-top: -9px;
+}
+
+.forgot-password {
+  padding: 2px 0;
+  border: 0;
+  color: #39745e;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.forgot-password:hover:not(:disabled) {
+  color: #a26039;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.forgot-password:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .success-notice {
